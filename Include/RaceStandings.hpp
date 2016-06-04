@@ -21,9 +21,11 @@
 
 #include "InternalsPlugin.hpp"
 
-#define PLUGIN_VERSION      2016060302
-#define MAX_FILENAME_LEN    255
-#define MAX_VEHICLES        100
+#define PLUGIN_VERSION						20160604
+#define MAX_FILENAME_LEN					255
+#define MAX_VEHICLES						100
+#define RACE_STANDINGS_CSV_FILENAME			"RaceStandings.csv"
+#define RACE_STANDINGS_LOG_FILENAME			"RaceStandings.log"
 
 // This is used for the app to use the plugin for its intended purpose
 // REMINDER: exported function GetPluginVersion() should return 1
@@ -52,7 +54,7 @@ class RaceStandingsPlugin : public InternalsPluginV07
   long WantsTelemetryUpdates() { return( 0 ); }
   void UpdateTelemetry( const TelemInfoV01 &info );
 
-  bool WantsGraphicsUpdates() { return( false ); } // CHANGE TO TRUE TO ENABLE GRAPHICS EXAMPLE!
+  bool WantsGraphicsUpdates() { return( false ); }
   void UpdateGraphics( const GraphicsInfoV01 &info );
 
   // GAME INPUT
@@ -65,16 +67,13 @@ class RaceStandingsPlugin : public InternalsPluginV07
   // control, this method returns true and sets the value of the double pointed to by the
   // second arg.  Otherwise, it returns false and leaves the double unmodified.
   bool CheckHWControl( const char * const controlName, double &fRetVal );
-
-  bool ForceFeedback( double &forceValue );  // SEE FUNCTION BODY TO ENABLE FORCE EXAMPLE
+  bool ForceFeedback( double &forceValue );
 
   const char * GetRF2DataPath();
 
-  // SCORING OUTPUT
-  bool WantsScoringUpdates() { return( true ); } // CHANGE TO TRUE TO ENABLE SCORING EXAMPLE!
+  bool WantsScoringUpdates() { return( true ); }
   void UpdateScoring( const ScoringInfoV01 &info );
 
-  // COMMENTARY INPUT
   bool RequestCommentary( CommentaryRequestInfoV01 &info );  // SEE FUNCTION BODY TO ENABLE COMMENTARY EXAMPLE
 
  private:

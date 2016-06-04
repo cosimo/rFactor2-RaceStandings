@@ -24,7 +24,8 @@
 
 unsigned long update_scoring_ticks = 0;
 char datapath[MAX_FILENAME_LEN] = "";
-
+bool debug = false;
+const char * finishStatus[4] = { "Racing", "Finished", "DNF", "DQ" };			
 
 // plugin information
 
@@ -53,7 +54,7 @@ void RaceStandingsPlugin::Log(const char *msg)
   struct tm localtime;
   char timestamp[26];
 
-  fo = fopen( "RaceStandings.log", "a" );
+  fo = fopen( RACE_STANDINGS_LOG_FILENAME, "a" );
   if( fo != NULL )
   {
 	curtime = time(NULL);
@@ -67,31 +68,39 @@ void RaceStandingsPlugin::Log(const char *msg)
 
 void RaceStandingsPlugin::Startup( long version )
 {
-  char temp[80];
-  sprintf( temp, "-STARTUP- (version %.3f)", (float) version / 1000.0f );
+  if (debug)
+  {
+    char temp[80];
+    sprintf( temp, "-STARTUP- (version %.3f)", (float) version / 1000.0f );
 
-  // Open ports, read configs, whatever you need to do.  For now, I'll just clear out the
-  // example output data files.
-  Log( temp );
+    // Open ports, read configs, whatever you need to do.  For now, I'll just clear out the
+    // example output data files.
+    Log( temp );
 
-  sprintf( temp, "-RACE STANDINGS PLUGIN VERSION %.3f-", (float) PLUGIN_VERSION / 100.0f );
-  Log( temp );
+    sprintf( temp, "-RACE STANDINGS PLUGIN VERSION %.3f-", (float) PLUGIN_VERSION );
+    Log( temp );
+  }
 
   // default HW control enabled to true
   mEnabled = true;
-
 }
 
 
 void RaceStandingsPlugin::Shutdown()
 {
-  Log( "-SHUTDOWN-" );
+  if (debug)
+  {
+    Log( "-SHUTDOWN-" );
+  }
 }
 
 
 void RaceStandingsPlugin::StartSession()
 {
-  Log( "--STARTSESSION--" );
+  if (debug)
+  {
+    Log( "--STARTSESSION--" );
+  }
   mLastLeaderLaps = 0;
   update_scoring_ticks = 0;
 }
@@ -99,7 +108,10 @@ void RaceStandingsPlugin::StartSession()
 
 void RaceStandingsPlugin::EndSession()
 {
-  Log( "--ENDSESSION--" );
+  if (debug)
+  {
+    Log( "--ENDSESSION--" );
+  }
   mLastLeaderLaps = 0;
 }
 
@@ -108,13 +120,19 @@ void RaceStandingsPlugin::EnterRealtime()
 {
   // start up timer every time we enter realtime
   mET = 0.0;
-  Log( "---ENTERREALTIME---" );
+  if (debug)
+  {
+    Log( "---ENTERREALTIME---" );
+  }
 }
 
 
 void RaceStandingsPlugin::ExitRealtime()
 {
-  Log( "---EXITREALTIME---" );
+  if (debug)
+  {
+    Log( "---EXITREALTIME---" );
+  }
 }
 
 
@@ -142,8 +160,8 @@ void RaceStandingsPlugin::UpdateScoring( const ScoringInfoV01 &info )
 {
   char msg[1024];
 
-  bool is_race_session = info.mSession < 10;
-  bool race_begun = info.mGamePhase == 0;
+  bool is_race_session = info.mSession >= 10;
+  bool race_begun = info.mGamePhase >= 5;
 
   if( ! is_race_session || ! race_begun )
   {
@@ -168,12 +186,6 @@ void RaceStandingsPlugin::UpdateScoring( const ScoringInfoV01 &info )
 
   update_scoring_ticks++;
 
-  //if (update_scoring_ticks % 300 == 0)
-  //{
-  //	  sprintf(msg, "UpdateScoring() ticks so far: %d", update_scoring_ticks);
-  //	  Log( msg );
-  //}
-
   // Find out who is the leader vehicle
   for( unsigned char i = 0; i < info.mNumVehicles; ++i )
   {
@@ -188,7 +200,7 @@ void RaceStandingsPlugin::UpdateScoring( const ScoringInfoV01 &info )
   // No players connected to the server yet
   if (max_place < 1)
   {
-	if (update_scoring_ticks % 50 == 0)
+	if (debug && update_scoring_ticks % 50 == 0)
     {
 	  sprintf(msg, "No players connected to the server yet. Waiting.");
 	  Log( msg );
@@ -204,7 +216,7 @@ void RaceStandingsPlugin::UpdateScoring( const ScoringInfoV01 &info )
 
   if (leader.mTotalLaps <= mLastLeaderLaps)
   {
-    if (update_scoring_ticks % 25 == 0)
+    if (debug && update_scoring_ticks % 25 == 0)
 	{
 	  sprintf(msg, "Leader total-laps-now=%d total-laps-prev=%d", leader.mTotalLaps, mLastLeaderLaps);
       Log(msg);
@@ -213,17 +225,23 @@ void RaceStandingsPlugin::UpdateScoring( const ScoringInfoV01 &info )
   }
 
   mLastLeaderLaps = leader.mTotalLaps;
-  Log( "Emit new standings file. Leader completed another lap." );
 
-  sprintf(msg, "Found %d (max_place) vehicles out of %d (info.mNumVehicles)", max_place, info.mNumVehicles);
-  Log( msg );
+  if (debug)
+  {
+    Log( "Emit new standings file. Leader completed another lap." );
+    sprintf(msg, "Found %d (max_place) vehicles out of %d (info.mNumVehicles)", max_place, info.mNumVehicles);
+    Log( msg );
+  }
 
-  FILE *fo = fopen( "RaceStandings.txt", "w" );
+  FILE *fo = fopen( RACE_STANDINGS_CSV_FILENAME, "w" );
   if( fo != NULL )
   {
     // Print CSV header
-    fprintf( fo, "# Pos\tVehicleClass\tDriverName\tCarDescription\tLaps\tLast\tBest\n");
-	Log("=== STANDINGS ===");
+    fprintf( fo, "# Pos\tVehicleClass\tDriverName\tCarDescription\tLaps\tTimeBehindLeader\tTimeBehindNext\tLastLap\tBestLap\tRaceStatus\n");
+	if (debug)
+	{
+      Log("=== STANDINGS ===");
+	}
 
     for( long place = 1; place <= max_place; place++ )
     {
@@ -231,19 +249,26 @@ void RaceStandingsPlugin::UpdateScoring( const ScoringInfoV01 &info )
       VehicleScoringInfoV01 &vinfo = info.mVehicle[ vehicle_index ];
 	  assert(&vinfo);
 
-	  /* Pos, Class, Driver Name, Laps, Car name */
-	  sprintf(msg, "%d\t%s\t%s\t%s\t%d\t%.3f\t%.3f",
+	  sprintf(msg, "%d\t%s\t%s\t%s\t%d\t%.3f\t%.3f\t%.3f\t%.3f\t%s",
 	    place,
 	    vinfo.mVehicleClass,
 	    vinfo.mDriverName,
 	    vinfo.mVehicleName,
 	    vinfo.mTotalLaps,
+		vinfo.mTimeBehindNext,
+		vinfo.mTimeBehindLeader,
 	    vinfo.mLastLapTime,
-	    vinfo.mBestLapTime );
+	    vinfo.mBestLapTime,
+		finishStatus[vinfo.mFinishStatus]
+	  );
 
-	  Log(msg);
 	  fprintf(fo, msg);
 	  fprintf(fo, "\n");
+
+	  if (debug)
+	  {
+		  Log(msg);
+	  }
 
       /*
       fprintf( fo, " ID=%d Vehicle=%s\n", vinfo.mID, vinfo.mVehicleName );
