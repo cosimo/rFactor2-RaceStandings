@@ -238,29 +238,31 @@ void RaceStandingsPlugin::UpdateScoring( const ScoringInfoV01 &info )
   std::string EditGridFile;
   EditGridFile = "UserData\\Log\\Results\\editgrid_";
   EditGridFile.append(std::to_string(leader.mTotalLaps));
-  FILE* foa = fopen(EditGridFile.c_str(), "w");
-  if (foa != NULL)
+  FILE* foa1 = fopen(EditGridFile.c_str(), "w");
+  if (foa1 != NULL)
   {
 	  sprintf(msg, "# editgrid" );
 
-	  fprintf(foa, msg);
-	  fprintf(foa, "\n");
-	  fclose(foa);
+	  fprintf(foa1, msg);
+	  fprintf(foa1, "\n");
+	  fclose(foa1);
   }
 
   std::string ChangeLaps;
   ChangeLaps = "UserData\\Log\\Results\\changelaps_";
   ChangeLaps.append(std::to_string(leader.mTotalLaps));
-  FILE* fob = fopen(ChangeLaps.c_str(), "w");
-  if (fob != NULL)
+  FILE* fob1 = fopen(ChangeLaps.c_str(), "w");
+  if (fob1 != NULL)
   {
 	  sprintf(msg, "# changelaps");
 
-	  fprintf(fob, msg);
-	  fprintf(fob, "\n");
-	  fclose(fob);
+	  fprintf(fob1, msg);
+	  fprintf(fob1, "\n");
+	  fclose(fob1);
   }
 
+  FILE* foa = fopen(EditGridFile.c_str(), "a");
+  FILE* fob = fopen(ChangeLaps.c_str(), "a");
 
   for (long place = 1; place <= max_place; place++)
   {
@@ -268,20 +270,17 @@ void RaceStandingsPlugin::UpdateScoring( const ScoringInfoV01 &info )
 	  VehicleScoringInfoV01& vinfo = info.mVehicle[vehicle_index];
 	  assert(&vinfo);
 
-	  FILE* foa = fopen(EditGridFile.c_str(), "a");
+	  
 	  if (foa != NULL)
 	  {
 		  sprintf(msg, "/editgrid %d %s",
 			  place,
 			  vinfo.mDriverName
 		  );
-
 		  fprintf(foa, msg);
 		  fprintf(foa, "\n");
-		  fclose(foa);
 	  }
 
-	  FILE* fob = fopen(ChangeLaps.c_str(), "a");
 	  if (fob != NULL)
 	  {
 		  short coveredLaps;
@@ -299,13 +298,13 @@ void RaceStandingsPlugin::UpdateScoring( const ScoringInfoV01 &info )
 			  // vinfo.mLapsBehindLeader,
 			  vinfo.mDriverName
 		  );
-
 		  fprintf(fob, msg);
 		  fprintf(fob, "\n");
 	  }
-	  fclose(fob);
-	}
 
+  }
+  fclose(foa);
+  fclose(fob);
 }
 
 bool RaceStandingsPlugin::RequestCommentary( CommentaryRequestInfoV01 &info )
