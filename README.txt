@@ -26,7 +26,7 @@ This could be a very long time for tracks like the Nordschleife, but this is how
 
 == Installation ==
 
-Copy the RaceStandings_x64.dll into your rFactor2 plugins folder,
+Copy the Dll/RaceStandings.dll into your rFactor2 plugins folder,
 most likely a directory like this:
 
   "C:\Program files (x86)\rFactor2\Bin64\Plugins"
