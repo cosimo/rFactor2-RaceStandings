@@ -21,6 +21,7 @@
 #include <math.h>               // for atan2, sqrt
 #include <stdio.h>              // for sample output
 #include <time.h>
+#include <string>
 
 unsigned long update_scoring_ticks = 0;
 char datapath[MAX_FILENAME_LEN] = "";
@@ -233,62 +234,77 @@ void RaceStandingsPlugin::UpdateScoring( const ScoringInfoV01 &info )
     Log( msg );
   }
 
-  FILE *fo = fopen( RACE_STANDINGS_CSV_FILENAME, "w" );
-  if( fo != NULL )
+
+  std::string EditGridFile;
+  EditGridFile = "UserData\\Log\\Results\\editgrid_";
+  EditGridFile.append(std::to_string(leader.mTotalLaps));
+  FILE* foa1 = fopen(EditGridFile.c_str(), "w");
+  if (foa1 != NULL)
   {
-    // Print CSV header
-    fprintf( fo, "# Pos\tVehicleClass\tDriverName\tCarDescription\tLaps\tTimeBehindLeader\tTimeBehindNext\tLastLap\tBestLap\tRaceStatus\n");
-	if (debug)
-	{
-      Log("=== STANDINGS ===");
-	}
+	  sprintf(msg, "# editgrid" );
 
-    for( long place = 1; place <= max_place; place++ )
-    {
-	  unsigned char vehicle_index = classification[ place ];
-      VehicleScoringInfoV01 &vinfo = info.mVehicle[ vehicle_index ];
-	  assert(&vinfo);
-
-	  sprintf(msg, "%d\t%s\t%s\t%s\t%d\t%.3f\t%.3f\t%.3f\t%.3f\t%s",
-	    place,
-	    vinfo.mVehicleClass,
-	    vinfo.mDriverName,
-	    vinfo.mVehicleName,
-	    vinfo.mTotalLaps,
-		vinfo.mTimeBehindNext,
-		vinfo.mTimeBehindLeader,
-	    vinfo.mLastLapTime,
-	    vinfo.mBestLapTime,
-		finishStatus[vinfo.mFinishStatus]
-	  );
-
-	  fprintf(fo, msg);
-	  fprintf(fo, "\n");
-
-	  if (debug)
-	  {
-		  Log(msg);
-	  }
-
-      /*
-      fprintf( fo, " ID=%d Vehicle=%s\n", vinfo.mID, vinfo.mVehicleName );
-      fprintf( fo, " Laps=%d Sector=%d FinishStatus=%d\n", vinfo.mTotalLaps, vinfo.mSector, vinfo.mFinishStatus );
-      fprintf( fo, " LapDist=%.1f PathLat=%.2f RelevantTrackEdge=%.2f\n", vinfo.mLapDist, vinfo.mPathLateral, vinfo.mTrackEdge );
-      fprintf( fo, " Best=(%.3f, %.3f, %.3f)\n", vinfo.mBestSector1, vinfo.mBestSector2, vinfo.mBestLapTime );
-      fprintf( fo, " Last=(%.3f, %.3f, %.3f)\n", vinfo.mLastSector1, vinfo.mLastSector2, vinfo.mLastLapTime );
-      fprintf( fo, " Current Sector 1 = %.3f, Current Sector 2 = %.3f\n", vinfo.mCurSector1, vinfo.mCurSector2 );
-      fprintf( fo, " Pitstops=%d, Penalties=%d\n", vinfo.mNumPitstops, vinfo.mNumPenalties );
-      fprintf( fo, " IsPlayer=%d Control=%d InPits=%d LapStartET=%.3f\n", vinfo.mIsPlayer, vinfo.mControl, vinfo.mInPits, vinfo.mLapStartET );
-      fprintf( fo, " Place=%d VehicleClass=%s\n", vinfo.mPlace, vinfo.mVehicleClass );
-      fprintf( fo, " TimeBehindNext=%.3f LapsBehindNext=%d\n", vinfo.mTimeBehindNext, vinfo.mLapsBehindNext );
-      fprintf( fo, " TimeBehindLeader=%.3f LapsBehindLeader=%d\n", vinfo.mTimeBehindLeader, vinfo.mLapsBehindLeader );
-	  */
-    }
-
-    // Close file
-    fclose( fo );
+	  fprintf(foa1, msg);
+	  fprintf(foa1, "\n");
+	  fclose(foa1);
   }
 
+  std::string ChangeLaps;
+  ChangeLaps = "UserData\\Log\\Results\\changelaps_";
+  ChangeLaps.append(std::to_string(leader.mTotalLaps));
+  FILE* fob1 = fopen(ChangeLaps.c_str(), "w");
+  if (fob1 != NULL)
+  {
+	  sprintf(msg, "# changelaps");
+
+	  fprintf(fob1, msg);
+	  fprintf(fob1, "\n");
+	  fclose(fob1);
+  }
+
+  FILE* foa = fopen(EditGridFile.c_str(), "a");
+  FILE* fob = fopen(ChangeLaps.c_str(), "a");
+
+  for (long place = 1; place <= max_place; place++)
+  {
+	  unsigned char vehicle_index = classification[place];
+	  VehicleScoringInfoV01& vinfo = info.mVehicle[vehicle_index];
+	  assert(&vinfo);
+
+	  
+	  if (foa != NULL)
+	  {
+		  sprintf(msg, "/editgrid %d %s",
+			  place,
+			  vinfo.mDriverName
+		  );
+		  fprintf(foa, msg);
+		  fprintf(foa, "\n");
+	  }
+
+	  if (fob != NULL)
+	  {
+		  short coveredLaps;
+		  if (vinfo.mPlace > 1)
+		  {
+			  coveredLaps = vinfo.mTotalLaps + 1;
+		  }
+		  else
+		  {
+			  coveredLaps = vinfo.mTotalLaps;
+		  }
+
+		  sprintf(msg, "/changelaps +%d %s",
+			  coveredLaps,
+			  // vinfo.mLapsBehindLeader,
+			  vinfo.mDriverName
+		  );
+		  fprintf(fob, msg);
+		  fprintf(fob, "\n");
+	  }
+
+  }
+  fclose(foa);
+  fclose(fob);
 }
 
 bool RaceStandingsPlugin::RequestCommentary( CommentaryRequestInfoV01 &info )
